@@ -18,13 +18,22 @@ module.exports = appInfo => {
   // add your middleware config here
   config.middleware = [];
 
+  // add Websocket Server Config
+  config.io = {
+    namespace: {
+      '/': {
+        connectionMiddleware: ['auth'],
+        packetMiddleware: ['filter'],
+      }
+    }
+  }
   // add your user config here
   const userConfig = {
-    // myAppName: 'egg',
-  };
+      // myAppName: 'egg',
+    };
 
-  return {
-    ...config,
-    ...userConfig,
+    return {
+      ...config,
+      ...userConfig,
+    };
   };
-};
