@@ -9,6 +9,13 @@ class ProjectController extends Controller {
     const data = await mongo().query('project');
     ctx.body = data;
   }
+
+  async getRedis(){
+    const { ctx, app } = this;
+    const num = await app.redis.get('number')
+    console.log(num)
+    ctx.body = 'hello redis'
+  }
 }
 
 module.exports = ProjectController;
