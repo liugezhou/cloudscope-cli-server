@@ -18,7 +18,7 @@ module.exports = () => {
         await redis.set(`${REDIS_PREFIX}:${id}`,JSON.stringify(query))
       }
       hashTask = await redis.get(`${REDIS_PREFIX}:${id}`)
-      logger.info(hashTask)
+      // logger.info(hashTask)
       await next();
       console.log('disconnect!');
     } catch (error) {
