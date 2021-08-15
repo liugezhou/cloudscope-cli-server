@@ -47,7 +47,7 @@ class CloudBuildTask {
         }else{
             res = false
         }
-        return false ? this.success():this.failed()
+        return res ? this.success():this.failed()
     }
 
     execCmd(cmd){
