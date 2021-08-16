@@ -16,6 +16,8 @@ module.exports = app => {
         await download(cloudBuildTask,socket,helper)
         await install(cloudBuildTask,socket,helper)
         await build(cloudBuildTask,socket,helper)
+        await prePublish(cloudBuildTask,socket,helper)
+        // await publish(cloudBuildTask,socket,helper)
       } catch (e) {
         socket.emit('build',helper.parseMsg('error',{
           message:`云构建失败，捕获失败原因${e.message}`
@@ -45,7 +47,6 @@ async function createCloudBuildTask(ctx,app){
     buildCmd:task.buildCmd,
   },ctx) 
 }
-
 async function prepare(cloudBuildTask,socket,helper) {
   socket.emit('build',helper.parseMsg('prepare',{
     message:'开始执行构建前的准备工作'
@@ -62,7 +63,6 @@ async function prepare(cloudBuildTask,socket,helper) {
     message:'构建前准备工作成功'
   }))
 }
-
 async function download(cloudBuildTask,socket,helper){
   socket.emit('build',helper.parseMsg('download repo',{
     message:'开始下载源码'
@@ -79,7 +79,6 @@ async function download(cloudBuildTask,socket,helper){
     }))
   }
 }
-
 async function install(cloudBuildTask,socket,helper) {
   socket.emit('build',helper.parseMsg('install',{
     message:'开始安装依赖'
@@ -109,6 +108,38 @@ async function build(cloudBuildTask,socket,helper) {
   }else{
     socket.emit('build',helper.parseMsg('build',{
       message:'云构建任务执行成功'
+    }))
+  }
+}
+async function prePublish(cloudBuildTask,socket,helper){
+  socket.emit('build',helper.parseMsg('pre-publish',{
+    message:'开始发布前检查'
+  }))
+  const prePublishRes = await cloudBuildTask.prePublish()
+  if(!prePublishRes || Object.is(prePublishRes.code,FAILED)){ 
+    socket.emit('build',helper.parseMsg('pre-publish failed',{
+      message:'发布前检查失败,失败原因：' + (prePublishRes && prePublishRes.message ? prePublishRes.message:'未知')
+    }))
+    throw new Error('发布终止')
+  }else{
+    socket.emit('build',helper.parseMsg('pre-publish',{
+      message:'发布前检查通过'
+    }))
+  }
+}
+async function publish(cloudBuildTask,socket,helper){
+  socket.emit('build',helper.parseMsg('publish',{
+    message:'开始发布'
+  }))
+  const publishRes = await cloudBuildTask.publish()
+  if(!publishRes || Object.is(publishRes.code,FAILED)){ //  downlod下载失败
+    socket.emit('build',helper.parseMsg('publish failed',{
+      message:'发布错误'
+    }))
+    return 
+  }else{
+    socket.emit('build',helper.parseMsg('publish',{
+      message:'发布成功'
     }))
   }
 }
