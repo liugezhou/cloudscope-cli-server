@@ -5,7 +5,10 @@ const fs = require('fs')
 const fse = require('fs-extra')
 const userHome = require('user-home')
 const Git = require('simple-git')
+const glob = require('glob')
 const {SUCCESS,FAILED} = require('../constant')
+const OSS = require('./OSS')
+const config = require('../../config/db')
 class CloudBuildTask {
     constructor(options,ctx){
         this._ctx = ctx
@@ -19,12 +22,18 @@ class CloudBuildTask {
        this._dir = path.resolve(userHome,'.cloudscope-cli','cloudbuild',`${this._name}@${this._version}`) //缓存目录
        this._sourceCodeDir = path.resolve(this._dir,this._name) //缓存源码目录
        this._buildPath = null  //构建结果Path路径
+       this._prod = options.prod === 'true' ? true : false
     }
 
     async prepare(){
         fse.ensureDirSync(this._dir)
         fse.emptyDirSync(this._dir)
         this._git = new Git(this._dir)
+        if(this._prod){ //生产准备OSS
+            this.oss =new OSS(config.OSS_PROD_BUCKET)
+        }else{//测试
+            this.oss =new OSS(config.OSS_DEV_BUCKET)
+        }
         return this.success()
     }
 
@@ -63,7 +72,28 @@ class CloudBuildTask {
     }
 
     async publish(){
-
+        return new Promise((resolve,reject) =>{
+            glob('**',{
+                cwd:this._buildPath,
+                nodir:true,
+                ignore:'**/node_modules/**'
+            },(err,files) =>{
+                if(err){
+                    resolve(false)
+                }else{
+                    Promise.all(files.map(async file=>{
+                        const filePath = path.resolve(this._buildPath,file)
+                        const uploadOSSRes = await this.oss.put(`${this._name}/${file}`,filePath) 
+                        return uploadOSSRes
+                    })).then(()=>{
+                        resolve(true)
+                    }).catch(err=>{
+                        this._ctx.logger.error(err)
+                        resolve(false)
+                    })
+                }
+            })
+        })
     }
 
     findBuildPath(){

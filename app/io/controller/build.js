@@ -2,7 +2,7 @@
 
 const REDIS_PREFIX = 'cloudbuild'
 const CloudBuildTask = require('../../models/CloudBuildTask')
-const { SUCCESS,FAILED} = require('../../constant')
+const { FAILED} = require('../../constant')
 
 module.exports = app => {
   class Controller extends app.Controller {
@@ -17,7 +17,7 @@ module.exports = app => {
         await install(cloudBuildTask,socket,helper)
         await build(cloudBuildTask,socket,helper)
         await prePublish(cloudBuildTask,socket,helper)
-        // await publish(cloudBuildTask,socket,helper)
+        await publish(cloudBuildTask,socket,helper)
       } catch (e) {
         socket.emit('build',helper.parseMsg('error',{
           message:`云构建失败，捕获失败原因${e.message}`
@@ -45,6 +45,7 @@ async function createCloudBuildTask(ctx,app){
     version:task.version,
     branch:task.branch,
     buildCmd:task.buildCmd,
+    prod:task.prod
   },ctx) 
 }
 async function prepare(cloudBuildTask,socket,helper) {
@@ -134,7 +135,7 @@ async function publish(cloudBuildTask,socket,helper){
   const publishRes = await cloudBuildTask.publish()
   if(!publishRes || Object.is(publishRes.code,FAILED)){ //  downlod下载失败
     socket.emit('build',helper.parseMsg('publish failed',{
-      message:'发布错误'
+      message:'发布失败'
     }))
     return 
   }else{
