@@ -1,7 +1,6 @@
 'use strict';
 
-const REDIS_PREFIX = 'cloudbuild'
-const CloudBuildTask = require('../../models/CloudBuildTask')
+const {createCloudBuildTask} = require('../../models/CloudBuildTask')
 const { FAILED} = require('../../constant')
 
 module.exports = app => {
@@ -18,6 +17,10 @@ module.exports = app => {
         await build(cloudBuildTask,socket,helper)
         await prePublish(cloudBuildTask,socket,helper)
         await publish(cloudBuildTask,socket,helper)
+        socket.emit('build',helper.parseMsg('build success',{
+          message:`云构建成功，访问链接：https://${cloudBuildTask._prod ? 'cloudscope-cli' : 'cloudscope-cli-dev'}.liugezhou.online/${cloudBuildTask._name}/index.html`
+        }))
+        socket.disconnect()
       } catch (e) {
         socket.emit('build',helper.parseMsg('error',{
           message:`云构建失败，捕获失败原因${e.message}`
@@ -29,25 +32,7 @@ module.exports = app => {
   return Controller;
 };
 
-async function createCloudBuildTask(ctx,app){
-  const { socket,helper } = ctx
-  const { redis } = app
-  const client = socket.id
-  const redisKey = `${REDIS_PREFIX}:${client}`
-  const redisTask = await redis.get(redisKey)
-  const task = JSON.parse(redisTask)
-  socket.emit('build',helper.parseMsg('create task',{
-    message:'创建云构建任务'
-  }))
-  return new CloudBuildTask({
-    repo:task.repo,
-    name:task.name,
-    version:task.version,
-    branch:task.branch,
-    buildCmd:task.buildCmd,
-    prod:task.prod
-  },ctx) 
-}
+
 async function prepare(cloudBuildTask,socket,helper) {
   socket.emit('build',helper.parseMsg('prepare',{
     message:'开始执行构建前的准备工作'

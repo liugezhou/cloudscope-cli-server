@@ -1,5 +1,6 @@
 'use strict';
 
+const {createCloudBuildTask} = require('../../models/CloudBuildTask')
 const REDIS_PREFIX = 'cloudbuild'
 module.exports = () => {
   return async (ctx, next) => {
@@ -18,11 +19,16 @@ module.exports = () => {
         await redis.set(`${REDIS_PREFIX}:${id}`,JSON.stringify(query))
       }
       hashTask = await redis.get(`${REDIS_PREFIX}:${id}`)
-      // logger.info(hashTask)
       await next();
+      //清除缓存文件
+      const cloudBuildTask = await createCloudBuildTask(ctx,app)
+      await cloudBuildTask.clean()
       console.log('disconnect!');
     } catch (error) {
       logger.info('build error',error.message)
+       //清除缓存文件
+       const cloudBuildTask = await createCloudBuildTask(ctx,app)
+       await cloudBuildTask.clean()
     }
    
   };

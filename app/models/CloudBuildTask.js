@@ -9,17 +9,19 @@ const glob = require('glob')
 const {SUCCESS,FAILED} = require('../constant')
 const OSS = require('./OSS')
 const config = require('../../config/db')
+const REDIS_PREFIX = 'cloudbuild'
 class CloudBuildTask {
-    constructor(options,ctx){
+    constructor(options,ctx,app){
         this._ctx = ctx
+        this._app = app
         this._name = options.name //项目名称
         this._version = options.version //项目版本号
         this._repo = options.repo
         this._branch = options.branch 
         this._buildCmd = options.buildCmd //构建命令
         this.logger = this._ctx .logger
-        // 服务器的用户主目录
-       this._dir = path.resolve(userHome,'.cloudscope-cli','cloudbuild',`${this._name}@${this._version}`) //缓存目录
+        // 服务器的用户主目录 + 缓存目录
+       this._dir = path.resolve(userHome,'.cloudscope-cli','cloudbuild',`${this._name}@${this._version}`) 
        this._sourceCodeDir = path.resolve(this._dir,this._name) //缓存源码目录
        this._buildPath = null  //构建结果Path路径
        this._prod = options.prod === 'true' ? true : false
@@ -72,7 +74,7 @@ class CloudBuildTask {
     }
 
     async publish(){
-        return new Promise((resolve,reject) =>{
+        return new Promise(resolve=>{
             glob('**',{
                 cwd:this._buildPath,
                 nodir:true,
@@ -95,7 +97,7 @@ class CloudBuildTask {
             })
         })
     }
-
+   
     findBuildPath(){
         const buildDir =['build','dist']
         const buildPath = buildDir.find(dir=>fs.existsSync(path.resolve(this._sourceCodeDir,dir)))
@@ -113,7 +115,7 @@ class CloudBuildTask {
         }
         const firstCommand = command[0]
         const leftCommand = command.slice(1) || []
-        return new Promise((resolve,reject)=>{
+        return new Promise(resolve =>{
             const p = exec(firstCommand,leftCommand,{
                 cwd:this._sourceCodeDir
             },{stdio:'pipe'})
@@ -147,6 +149,19 @@ class CloudBuildTask {
             data
         }
     }
+
+    async clean(){
+        if (fs.existsSync(this._dir)) {
+            fse.removeSync(this._dir);
+          }
+          const { socket } = this._ctx;
+          const client = socket.id;
+          const redisKey = `${REDIS_PREFIX}:${client}`;
+          await this._app.redis.del(redisKey);
+    }
+    isProd(){
+        return this._prod
+    }
 }
 
 function exec(command,args,options){
@@ -166,4 +181,26 @@ function checkCommand(command){
      }     
      return false  
 }
-module.exports = CloudBuildTask
+async function createCloudBuildTask(ctx,app){
+    const { socket,helper } = ctx
+    const { redis } = app
+    const client = socket.id
+    const redisKey = `${REDIS_PREFIX}:${client}`
+    const redisTask = await redis.get(redisKey)
+    const task = JSON.parse(redisTask)
+    socket.emit('build',helper.parseMsg('create task',{
+      message:'创建云构建任务'
+    }))
+    return new CloudBuildTask({
+      repo:task.repo,
+      name:task.name,
+      version:task.version,
+      branch:task.branch,
+      buildCmd:task.buildCmd,
+      prod:task.prod
+    },ctx,app) 
+  }
+module.exports = {
+    CloudBuildTask,
+    createCloudBuildTask
+}
