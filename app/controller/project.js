@@ -43,6 +43,34 @@ class ProjectController extends Controller {
       ctx.body = '没有获取到key'
     }
   }
+
+  async getOSSFile(){
+    const { ctx } = this
+    let ossProjectType = ctx.query.type
+    let ossName = ctx.query.name 
+    let file = ctx.query.file 
+    if(!ossName || !file){
+      ctx.body=failed('请提供OSS文件名称')
+      return
+    }
+    if(ossProjectType){
+      ossProjectType = 'prod'
+    }
+    let oss 
+    if(Object.is(ossProjectType,'prod')){
+       oss = new OSS(config.OSS_DEV_BUCKET)
+    }else{
+      oss = new OSS(config.OSS_PROD_BUCKET)
+    }
+    if(oss){
+      const fileList = await oss.list(ossName)
+      const fileName = `${ossName}/${file}`
+      const finalFile = fileList.find(item=>item.name === fileName)
+      ctx.body = success('获取项目文件成功', finalFile)
+    }else{
+      ctx.body = failed('获取项目文件失败');
+    }
+  }
 }
 
 module.exports = ProjectController;
