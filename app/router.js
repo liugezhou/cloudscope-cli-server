@@ -10,5 +10,6 @@ module.exports = app => {
   router.get('/redis/test', controller.project.getRedis);
   router.get('/oss/get', controller.project.getOSSFile);
   
+  router.get('/mysql',controller.project.mysqlTest)
   app.io.route('build', app.io.controller.build.index);
 };

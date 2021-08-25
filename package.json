@@ -9,6 +9,7 @@
   "dependencies": {
     "ali-oss": "^6.16.0",
     "egg": "^2.15.1",
+    "egg-mysql": "^3.0.0",
     "egg-redis": "^2.4.0",
     "egg-scripts": "^2.11.0",
     "egg-socket.io": "^4.1.6",

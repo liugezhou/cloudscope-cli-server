@@ -13,11 +13,26 @@ const OSS_ACCESS_SECRET_KEY = fs.readFileSync(path.resolve(userHome,'.cloudscope
 const OSS_PROD_BUCKET='cloudscope-cli'
 const OSS_DEV_BUCKET='cloudscope-cli-dev'
 const OSS_REGION='oss-cn-beijing'
+
+/*
+ * Mysql 
+ */
+const MYSQL_HOST = 'liugezhou.com'
+const MYSQL_PORT = 3306
+const MYSQL_USER = 'root' 
+const MYSQL_PWD = fs.readFileSync(path.resolve(userHome,'.cloudscope-cli','mysql_pwd')).toString().trim()
+const MYSQL_DB ='imooc_web_architect_cli'
+
 module.exports = {
   mongodbUrl,
   OSS_ACCESS_KEY,
   OSS_ACCESS_SECRET_KEY,
   OSS_PROD_BUCKET,
   OSS_DEV_BUCKET,
-  OSS_REGION
+  OSS_REGION,
+  MYSQL_HOST,
+  MYSQL_PORT,
+  MYSQL_USER,
+  MYSQL_PWD,
+  MYSQL_DB
 };

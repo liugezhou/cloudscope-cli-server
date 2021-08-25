@@ -71,6 +71,12 @@ class ProjectController extends Controller {
       ctx.body = failed('获取项目文件失败');
     }
   }
+
+  async mysqlTest(){
+    const {ctx, app } = this
+    const list = await app.mysql.select('component')
+    ctx.body = JSON.stringify(list)
+  }
 }
 
 module.exports = ProjectController;
