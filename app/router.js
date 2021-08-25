@@ -9,7 +9,7 @@ module.exports = app => {
   router.get('/project/oss', controller.project.getOSSProject);
   router.get('/redis/test', controller.project.getRedis);
   router.get('/oss/get', controller.project.getOSSFile);
-  
-  router.get('/mysql',controller.project.mysqlTest)
+
+  router.get('/mysql', controller.project.mysqlTest)
   app.io.route('build', app.io.controller.build.index);
 };

@@ -11,6 +11,6 @@ exports.redis = {
 };
 
 exports.mysql = {
-  enable:true,
+  enable: true,
   package: 'egg-mysql'
 }

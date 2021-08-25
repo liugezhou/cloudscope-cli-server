@@ -1,16 +1,16 @@
 'use strict'
 
-function success(message,data){
+function success(message, data) {
     return {
-        code:0,
+        code: 0,
         message,
         data
     }
 }
 
-function failed(message,data){
+function failed(message, data) {
     return {
-        code:-1,
+        code: -1,
         message,
         data
     }
