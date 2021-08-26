@@ -1,9 +1,13 @@
 'use strict'
 
 const SUCCESS = 0;
-const FAILED = -1
+const FAILED = -1;
 
 module.exports = {
     SUCCESS,
-    FAILED
+    FAILED,
+    STATUS: {
+        ON: 1,
+        OFF: 0,
+    },
 }
