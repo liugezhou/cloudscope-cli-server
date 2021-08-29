@@ -3,10 +3,12 @@
 const Controller = require("egg").Controller;
 const constant = require('../../constant');
 const ComponentService = require('../../service/ComponentService');
-const VersionService = require('../../service/VersionService')
+const VersionService = require('../../service/VersionService');
+const ComponentTask = require('../../models/ComponentTask');
 const { failed, success } = require('../../utils/request')
 const axios = require('axios')
 const { decode } = require('js-base64');
+const { formatName } = require('../../utils/index')
 class ComponentsController extends Controller {
 
     // api/v1/components
@@ -67,15 +69,11 @@ class ComponentsController extends Controller {
             // gitee GET https://gitee.com/api/v5/repos/{owner}/{repo}/contents(/{path})
             // git GET https://api.github.com/repos/{owner}/{repo}/{path})
             let readmeUrl;
-            let _name = component.classname;
-            if (_name && _name.startsWith('@') && _name.indexOf('/') > 0) {
-                const nameArray = _name.split('/');
-                _name = nameArray.join('_').replace('@', '');
-            }
+            const name = formatName(component.classname);
             if (component.git_type === 'gitee') {
-                readmeUrl = `https://gitee.com/api/v5/repos/${component.git_login}/${_name}/contents/README.md`
+                readmeUrl = `https://gitee.com/api/v5/repos/${component.git_login}/${name}/contents/README.md`
             } else {
-                readmeUrl = `https://api.github.com/repos/${component.git_login}/${_name}/README.md`
+                readmeUrl = `https://api.github.com/repos/${component.git_login}/${name}/README.md`
             }
             const readme = await axios.get(readmeUrl);
             let content = readme.data && readme.data.content;
@@ -166,10 +164,31 @@ class ComponentsController extends Controller {
                 return;
             }
         }
-        ctx.body = success('添加组件成功', {
-            component: await componentService.queryOne({ id: componentId }),
-            version: await versionService.queryOne({ component_id: componentId, version: git.version })
-        })
+        //3.向OSS中上传组件预览文件
+        console.log('向OSS中上传组件预览')
+        const task = new ComponentTask({
+            repo: git.remote,
+            version: git.version,
+            name: component.className,
+            branch: git.branch,
+            buildPath: component.buildPath,
+            examplePath: component.examplePath,
+        }, { ctx });
+        try {
+            // 3.1 下载源码
+            await task.downloadSourceCode();
+            // 3.2 上传组件构建结果
+            await task.publishBuild();
+            // 3.3 上传组件多预览文件
+            await task.publishExample();
+            ctx.body = success('添加组件成功', {
+                component: await componentService.queryOne({ id: componentId }),
+                version: await versionService.queryOne({ component_id: componentId, version: git.version })
+            })
+        } catch (e) {
+            ctx.logger.error(e);
+            ctx.body = failed('添加组件失败，失败原因：' + e.message);
+        }
     }
 }
 

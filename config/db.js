@@ -13,6 +13,7 @@ const OSS_ACCESS_SECRET_KEY = fs.readFileSync(path.resolve(userHome, '.cloudscop
 const OSS_PROD_BUCKET = 'cloudscope-cli'
 const OSS_DEV_BUCKET = 'cloudscope-cli-dev'
 const OSS_REGION = 'oss-cn-beijing'
+const OSS_COMPONENT_BUCKET ='cloudscope-component'
 
 /*
  * Mysql 
@@ -34,5 +35,6 @@ module.exports = {
   MYSQL_PORT,
   MYSQL_USER,
   MYSQL_PWD,
-  MYSQL_DB
+  MYSQL_DB,
+  OSS_COMPONENT_BUCKET
 };
