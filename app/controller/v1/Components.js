@@ -10,8 +10,44 @@ class ComponentsController extends Controller {
 
     // api/v1/components
     async index() {
-        const { ctx } = this;
-        ctx.body = 'get component'
+        const { ctx, app } = this;
+        const { name } = ctx.query;
+        const andWhere = name ? `AND c.name LIKE '%${name}%'` : '';
+        const sql = `SELECT c.id, c.name, c.classname, c.description, c.npm_name, c.npm_version, c.git_type, c.git_remote, c.git_owner, c.git_login, c.create_dt, c.update_dt, v.version, v.build_path, v.example_path, v.example_list
+    FROM component AS c
+    LEFT JOIN version AS v ON c.id = v.component_id
+    WHERE c.status = 1 AND v.status = 1 ${andWhere}
+    ORDER BY c.create_dt, v.version DESC`;
+        const result = await app.mysql.query(sql);
+        const components = [];
+        result.forEach(component => {
+        let hasComponent = components.find(item => item.id === component.id);
+        if (!hasComponent) {
+            hasComponent = {
+            ...component,
+            };
+            delete hasComponent.version;
+            delete hasComponent.build_path;
+            delete hasComponent.example_path;
+            delete hasComponent.example_list;
+            hasComponent.versions = [];
+            components.push(hasComponent);
+            hasComponent.versions.push({
+            version: component.version,
+            build_path: component.build_path,
+            example_path: component.example_path,
+            example_list: component.example_list,
+            });
+        } else {
+            hasComponent.versions.push({
+            version: component.version,
+            build_path: component.build_path,
+            example_path: component.example_path,
+            example_list: component.example_list,
+            });
+        }
+        });
+        ctx.body = components;
     }
 
     // api/v1/components/:id
