@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "ali-oss": "^6.16.0",
+    "axios": "^0.21.1",
     "egg": "^2.15.1",
     "egg-cors": "^2.2.3",
     "egg-mysql": "^3.0.0",
@@ -16,6 +17,7 @@
     "egg-socket.io": "^4.1.6",
     "fs-extra": "^10.0.0",
     "glob": "^7.1.7",
+    "js-base64": "^3.6.1",
     "mongodb": "^3.6.4",
     "npmlog": "^4.1.2",
     "simple-git": "^2.44.0",

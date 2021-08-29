@@ -5,7 +5,8 @@ const constant = require('../../constant');
 const ComponentService = require('../../service/ComponentService');
 const VersionService = require('../../service/VersionService')
 const { failed, success } = require('../../utils/request')
-
+const axios = require('axios')
+const { decode } = require('js-base64');
 class ComponentsController extends Controller {
 
     // api/v1/components
@@ -21,39 +22,73 @@ class ComponentsController extends Controller {
         const result = await app.mysql.query(sql);
         const components = [];
         result.forEach(component => {
-        let hasComponent = components.find(item => item.id === component.id);
-        if (!hasComponent) {
-            hasComponent = {
-            ...component,
-            };
-            delete hasComponent.version;
-            delete hasComponent.build_path;
-            delete hasComponent.example_path;
-            delete hasComponent.example_list;
-            hasComponent.versions = [];
-            components.push(hasComponent);
-            hasComponent.versions.push({
-            version: component.version,
-            build_path: component.build_path,
-            example_path: component.example_path,
-            example_list: component.example_list,
-            });
-        } else {
-            hasComponent.versions.push({
-            version: component.version,
-            build_path: component.build_path,
-            example_path: component.example_path,
-            example_list: component.example_list,
-            });
-        }
+            let hasComponent = components.find(item => item.id === component.id);
+            if (!hasComponent) {
+                hasComponent = {
+                    ...component,
+                };
+                delete hasComponent.version;
+                delete hasComponent.build_path;
+                delete hasComponent.example_path;
+                delete hasComponent.example_list;
+                hasComponent.versions = [];
+                components.push(hasComponent);
+                hasComponent.versions.push({
+                    version: component.version,
+                    build_path: component.build_path,
+                    example_path: component.example_path,
+                    example_list: component.example_list,
+                });
+            } else {
+                hasComponent.versions.push({
+                    version: component.version,
+                    build_path: component.build_path,
+                    example_path: component.example_path,
+                    example_list: component.example_list,
+                });
+            }
         });
         ctx.body = components;
     }
 
     // api/v1/components/:id
     async show() {
-        const { ctx } = this;
-        ctx.body = 'get single component'
+        const { ctx, app } = this;
+        const id = ctx.params.id
+        const results = await app.mysql.select('component', {
+            where: { id }
+        })
+        if (results && results.length > 0) {
+            const component = results[0]
+            component.versions = await app.mysql.select('version', {
+                where: { component_id: id },
+                orders: [['version', 'desc']]
+            })
+            // gitee GET https://gitee.com/api/v5/repos/{owner}/{repo}/contents(/{path})
+            // git GET https://api.github.com/repos/{owner}/{repo}/{path})
+            let readmeUrl;
+            let _name = component.classname;
+            if (_name && _name.startsWith('@') && _name.indexOf('/') > 0) {
+                const nameArray = _name.split('/');
+                _name = nameArray.join('_').replace('@', '');
+            }
+            if (component.git_type === 'gitee') {
+                readmeUrl = `https://gitee.com/api/v5/repos/${component.git_login}/${_name}/contents/README.md`
+            } else {
+                readmeUrl = `https://api.github.com/repos/${component.git_login}/${_name}/README.md`
+            }
+            const readme = await axios.get(readmeUrl);
+            let content = readme.data && readme.data.content;
+            if (content) {
+                content = decode(content)
+                if (content) {
+                    component.readme = content
+                }
+            }
+            ctx.body = component
+        } else {
+            ctx.body = {}
+        }
     }
 
     // post data
